@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrowdAware</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #292929;
+      --button-color: #b6b6d6;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: 'Poppins', sans-serif;
+      background-color: #ffffff;
+      color: white;
+      overflow: hidden;
+      transition: transform 1s ease, opacity 1s ease;
+    }
+
+    body.slide-up {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+
+    #banner {
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
+                  url('images/second.jpg') center/cover no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .content {
+      text-align: center;
+      padding: 2rem;
+      animation: fadeIn 1.2s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-image {
+      border-radius: 50%;
+      border: 4px solid white;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      margin-bottom: 1.5rem;
+      height: 120px;
+      width: 120px;
+      object-fit: cover;
+      opacity: 0;
+      animation: logoFade 1.5s ease forwards 0.8s;
+    }
+
+    @keyframes logoFade {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .title h1 {
+      font-size: 3.5rem;
+      margin: 0.3em 0;
+      color: #fff;
+      text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    }
+
+    .title h1:nth-child(2) {
+      font-size: 1.5rem;
+      font-weight: normal;
+      color: #e6e6e6;
+      margin-top: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .continue-btn {
+      margin-top: 2.5rem;
+      padding: 1rem 3rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 2px solid var(--button-color);
+      border-radius: 30px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      animation: slideUp 2s ease-out forwards 2s;
+      transition: all 0.3s ease;
+    }
+
+    .continue-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.06);
+      box-shadow: 0 0 20px rgba(182, 182, 214, 0.5);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      .title h1 {
+        font-size: 2.2rem;
+      }
+
+      .title h1:nth-child(2) {
+        font-size: 1rem;
+      }
+
+      .continue-btn {
+        font-size: 1rem;
+        padding: 0.8rem 2rem;
+      }
+
+      .logo-image {
+        height: 90px;
+        width: 90px;
+      }
+    }
+ 
+    .logo-text {
+  font-size: 4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
+  letter-spacing: 1.5px;
+  background: linear-gradient(90deg, #ffffff, #dddddd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: fadeInLogo 1.2s ease both;
+}
+
+.logo-text .crowd {
+  background: linear-gradient(90deg, #ffffff, #b6b6d6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-text .aware {
+  background: linear-gradient(135deg, #6a8dff, #8e3fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding-left: 0.2rem;
+  position: relative;
+}
+
+.logo-text .aware::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(135deg, #6a8dff, #8e3fff);
+  border-radius: 2px;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.logo-text:hover .aware::after {
+  opacity: 1;
+}
+
+@keyframes fadeInLogo {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+  </style>
+</head>
+<body>
+
+  <section id="banner">
+    <div class="content">
+      <img src="images/logoo.PNG" alt="CrowdAware Logo" class="logo-image" />
+      <header class="title">
+        <h1 class="logo-text">
+            <span class="crowd">CROWDA</span><span class="aware">WARE</span>
+          </h1>
+          
+        <h1>Smart People Counting Powered by AI</h1>
+      </header>
+      
+      <button class="continue-btn" onclick="slideUpAndRedirect()">Continue</button>
+    </div>
+  </section>
+
+  <script>
+    function slideUpAndRedirect() {
+      document.body.classList.add('slide-up');
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1000);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>People Detection App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<style>
+    body {
+        background: linear-gradient(45deg, #dfe1e4, #312d47, #031a1d);
+        color: white;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        background-color: #dfe1e4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        color: #312d47;
+    }
+
+    .controls {
+        margin: 20px;
+    }
+
+    video, canvas {
+        display: block;
+        margin: 10px auto;
+        max-width: 90%;
+        border: 2px solid white;
+        border-radius: 10px;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        background-color: #312d47;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+</style>
+<body>
+    <div class="container">
+        <h1>People Detection Web Application</h1>
+        <div class="controls">
+            <button onclick="startLiveFeed()">Start Live Feed</button>
+            <button id="detect-people" disabled>Detect People</button>
+        </div>
+        <video id="live-feed" autoplay playsinline muted></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
+    <script>
+       function startLiveFeed() {
+        window.open('http://127.0.0.1:8000/live_feed', '_blank');
+    }
+
+    </script>
+</body>
+</html>

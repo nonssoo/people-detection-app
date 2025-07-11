@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>People Detection & Counting Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { 
+      --bg:#f7f9fc;
+      --text:#212529;
+      --card-bg:#fff;
+      --card-shadow:rgba(0,0,0,0.05);
+      --muted:#6c757d;
+      --live-green:#28a745;
+      --btn-border:#ced4da;
+    }
+    [data-theme="dark"] { 
+      --bg:#121212;
+      --text:#ffffff;
+      --card-bg:#1e1e1e;
+      --card-shadow:rgba(0,0,0,0.7);
+      --muted:#adb5bd;
+      --live-green:#4cd137;
+      --btn-border:#495057;
+    }
+    html, body {
+      font-family:'Poppins',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .card {
+      background:var(--card-bg);
+      border-radius:1rem;
+      box-shadow:0 4px 20px var(--card-shadow);
+      color:var(--text);
+    }
+    .upload-area {
+      border:2px dashed var(--btn-border);
+      border-radius:.75rem;
+      padding:2rem;
+      background:var(--card-bg);
+      text-align:center;
+      cursor:pointer;
+      position: relative;
+      color:var(--text);
+    }
+    .upload-area.dragover {
+      background-color:rgba(100,149,237,.1);
+    }
+    .live-indicator {
+      width:12px;
+      height:12px;
+      background:var(--live-green);
+      border-radius:50%;
+      display:inline-block;
+      animation:pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform:scale(1) }
+      50% { transform:scale(1.05) }
+      100% { transform:scale(1) }
+    }
+    h1.fw-semibold {
+      font-size:2rem;
+      font-weight:600;
+      background:linear-gradient(90deg,#4a90e2, #9013fe);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      text-shadow:1px 1px 2px rgba(0,0,0,.2);
+    }
+    #liveVideo, #filePreview {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      background: #000;
+    }
+    #filePreview {
+      display: none;
+    }
+    .detection-box {
+      position: absolute;
+      border: 2px solid #00FF00;
+      background: rgba(0, 255, 0, 0.1);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .detection-label {
+      position: absolute;
+      color: white;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2px 5px;
+      font-size: 12px;
+      border-radius: 3px;
+      z-index: 11;
+      pointer-events: none;
+    }
+    #filePreview, #imagePreview {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      background: #000;
+      border-radius: 0.75rem;
+      margin-top: 1rem;
+      display: none;
+    }
+    .preview-container {
+      position: relative;
+      margin-top: 1rem;
+    }
+    .spinner-border {
+      width: 2rem;
+      height: 2rem;
+      margin: 1rem auto;
+      display: block;
+    }
+    .progress-container {
+      margin-top: 1rem;
+      display: none;
+      color:var(--text);
+    }
+    .video-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 0.75rem;
+    }
+    .fullscreen-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 20;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .fullscreen-btn:hover {
+      background: rgba(0,0,0,0.8);
+    }
+    #liveVideo:-webkit-full-screen {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+    }
+    #imagePreview {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      display: none;
+    }
+    .text-muted {
+      color: var(--muted) !important;
+    }
+    .h2, .h6, .display-6 {
+      color: var(--text);
+    }
+    .attempts-counter {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+    /* Add this to hide attempts counter for premium users */
+    .premium-hidden {
+      display: none !important;
+    }
+    /* Makes buttons align nicely */
+    .btn {
+      margin-right: 0.5rem;
+    }
+    .btn:last-child {
+      margin-right: 0;
+    }
+    @media (max-width: 768px) {
+      .d-flex {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      #username {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      .btn {
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="fw-semibold">crowdAware Dashboard</h1>
+      <div class="d-flex align-items-center gap-2">
+        <span id="username" class="me-2 text-muted"></span>
+        <button id="payNowBtn" class="btn btn-success">Pay Now</button>
+        <button id="themeToggle" class="btn btn-outline-secondary">🌙 Dark Mode</button>
+        <button id="logoutBtn" class="btn btn-danger">Logout</button>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- Live Feed -->
+      <div class="col-md-6">
+        <div class="card p-3">
+          <div class="d-flex justify-content-between">
+            <h5>Live Feed <span class="live-indicator"></span></h5>
+            <button id="btnToggleLive" class="btn btn-sm btn-outline-primary">Start Live</button>
+          </div>
+          <div class="video-container">
+            <div class="attempts-counter premium-hidden" id="liveAttemptsCounter">Attempts left: 3</div>
+            <video id="liveVideo" class="w-100 rounded mt-2" autoplay muted></video>
+            <button class="fullscreen-btn">⛶</button>
+          </div>
+          <div class="mt-3">
+            <span class="h2" id="liveCount">0</span>
+            <span class="text-muted">people detected</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h5>Upload File</h5>
+          <div id="uploadArea" class="upload-area my-3"
+              onclick="document.getElementById('fileInput').click()"
+              ondragover="handleDragOver(event)"
+              ondragleave="handleDragLeave(event)"
+              ondrop="handleDrop(event)">
+            <p class="text-muted">Drag & drop or click to select</p>
+            <div class="attempts-counter premium-hidden" id="uploadAttemptsCounter">Attempts left: 3</div>
+            <input type="file" id="fileInput" accept="image/*,video/*" hidden />
+          </div>
+          <div class="progress-container" id="uploadProgress">
+            <div class="progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+            </div>
+            <p class="text-center mt-2 mb-0">Processing file...</p>
+          </div>
+          <div class="preview-container">
+            <video id="filePreview" controls></video>
+            <img id="imagePreview" />
+          </div>
+          <div class="mt-3">
+            <span class="h2" id="fileCount">0</span>
+            <span class="text-muted">people detected</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="row mt-5">
+        <div class="col-md-4"><div class="card text-center p-4">
+          <h6 class="text-uppercase text-muted">Total Processed</h6>
+          <p class="display-6 fw-bold" id="statTotal">0</p>
+        </div></div>
+        <div class="col-md-4"><div class="card text-center p-4">
+          <h6 class="text-uppercase text-muted">Peak Occupancy</h6>
+          <p class="display-6 fw-bold text-danger" id="statPeak">0</p>
+        </div></div>
+        <div class="col-md-4"><div class="card text-center p-4">
+          <h6 class="text-uppercase text-muted">Average Count</h6>
+          <p class="display-6 fw-bold" id="statAvg">0.0</p>
+        </div></div>
+      </div>
+    </div>
+    
+    <div class="modal fade" id="limitModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Usage Limit Reached</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>You've reached your free tier limit of 3 detections.</p>
+            <p>Upgrade to Premium for unlimited usage.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="upgradeBtn">Upgrade Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-analytics.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+      import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAWF7YXsSLPEDJcI-jLg30BlGTQMwyIENg",
+        authDomain: "crowdaware.firebaseapp.com",
+        projectId: "crowdaware",
+        storageBucket: "crowdaware.appspot.com",
+        messagingSenderId: "458999934679",
+        appId: "1:458999934679:web:1b2e4d98be5a41ff378a92",
+        measurementId: "G-X7243K4XNH"
+      };
+      
+      const app = initializeApp(firebaseConfig);
+      getAnalytics(app);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+
+      // Global variables
+      let currentUser = null;
+      const MAX_FREE_ATTEMPTS = 3;
+      const LIVE_ATTEMPT_INTERVAL = 60000; // 1 minute in milliseconds
+
+      // Initialize the app when DOM is loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        initAuth();
+        initUI();
+      });
+
+      function initAuth() {
+        onAuthStateChanged(auth, async (user) => {
+          if (!user) {
+            window.location.href = "login.html";
+            return;
+          }
+          
+          try {
+            const userRef = ref(db, 'users/' + user.uid);
+            const snap = await get(userRef);
+            
+            // Initialize user data if doesn't exist
+            if (!snap.exists()) {
+              await set(userRef, {
+                name: user.displayName || user.email.split('@')[0],
+                email: user.email,
+                attempts: 0,
+                isPremium: false,
+                lastDetection: null
+              });
+            }
+            
+            // Update UI with user info
+            const userData = snap.exists() ? snap.val() : {
+              name: user.email.split('@')[0],
+              attempts: 0,
+              isPremium: false
+            };
+            
+            document.getElementById("username").textContent = userData.name || user.email;
+            updateAttemptsCounter(userData.attempts || 0); // Ensure attempts is a number
+            
+            // Store user data for later use
+            currentUser = {
+              id: user.uid,
+              ref: userRef,
+              ...userData
+            };
+            
+            // Show/hide pay button based on premium status
+            if (currentUser.isPremium) {
+              document.getElementById("payNowBtn").style.display = "none";
+              // Hide attempts counters for premium users
+              document.querySelectorAll('.attempts-counter').forEach(el => {
+                el.classList.add('premium-hidden');
+              });
+            } else {
+              document.getElementById("payNowBtn").style.display = "inline-block";
+              document.querySelectorAll('.attempts-counter').forEach(el => {
+                el.classList.remove('premium-hidden');
+              });
+            }
+            
+          } catch (error) {
+            console.error("Auth error:", error);
+            alert("Authentication error: " + error.message);
+          }
+        });
+      }
+
+      function initUI() {
+        // Update attempts counter display
+        window.updateAttemptsCounter = function(attempts) {
+          const remaining = Math.max(0, MAX_FREE_ATTEMPTS - (attempts || 0)); // Ensure non-negative
+          document.getElementById("liveAttemptsCounter").textContent = `Attempts left: ${remaining}`;
+          document.getElementById("uploadAttemptsCounter").textContent = `Attempts left: ${remaining}`;
+        };
+        
+        // Check if user can perform detection
+        window.canPerformDetection = async function() {
+          if (!currentUser) return false;
+          
+          // Premium users have unlimited access
+          if (currentUser.isPremium) return true;
+          
+          // Check attempts (ensure attempts is a number)
+          const attempts = currentUser.attempts || 0;
+          if (attempts >= MAX_FREE_ATTEMPTS) {
+            // Show modal and redirect to payment
+            const modal = new bootstrap.Modal(document.getElementById('limitModal'));
+            modal.show();
+            
+            document.getElementById('upgradeBtn').onclick = () => {
+              modal.hide();
+              window.location.href = "payment.html";
+            };
+            
+            return false;
+          }
+          
+          return true;
+        };
+        
+        // Increment user attempts
+        window.incrementAttempts = async function() {
+          if (!currentUser || currentUser.isPremium) return;
+          
+          const newAttempts = (currentUser.attempts || 0) + 1;
+          await update(currentUser.ref, {
+            attempts: newAttempts,
+            lastDetection: new Date().toISOString()
+          });
+          
+          currentUser.attempts = newAttempts;
+          updateAttemptsCounter(newAttempts);
+          
+          // Redirect if exceeded attempts
+          if (newAttempts >= MAX_FREE_ATTEMPTS) {
+            setTimeout(() => {
+              window.location.href = "payment.html";
+            }, 2000);
+          }
+        };
+        
+        // Logout
+        document.getElementById("logoutBtn").onclick = () => {
+          if (confirm("Are you sure you want to logout?")) {
+            signOut(auth).then(() => location.href = "login.html");
+          }
+        };
+        
+        // Payment button
+        document.getElementById("payNowBtn").onclick = () => {
+          window.location.href = "payment.html";
+        };
+
+        // Theme toggle
+        const themeBtn = document.getElementById("themeToggle");
+        themeBtn.onclick = () => {
+          const html = document.documentElement;
+          const currentTheme = html.getAttribute("data-theme");
+          const nextTheme = currentTheme === "light" ? "dark" : "light";
+          
+          html.setAttribute("data-theme", nextTheme);
+          localStorage.setItem("theme", nextTheme);
+          themeBtn.textContent = nextTheme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode";
+        };
+        
+        // Restore theme
+        const savedTheme = localStorage.getItem("theme") || "light";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        themeBtn.textContent = savedTheme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode";
+
+        // Stats
+        window.total = 0;
+        window.peak = 0;
+        window.sum = 0;
+        window.cnt = 0;
+        
+        window.updateStats = function(count) {
+          total++;
+          peak = Math.max(peak, count);
+          sum += count;
+          cnt++;
+          
+          document.getElementById("statTotal").textContent = total;
+          document.getElementById("statPeak").textContent = peak;
+          document.getElementById("statAvg").textContent = (sum / cnt).toFixed(1);
+        };
+
+        // Initialize drag and drop handlers
+        window.handleDragOver = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          document.getElementById("uploadArea").classList.add("dragover");
+        };
+
+        window.handleDragLeave = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          document.getElementById("uploadArea").classList.remove("dragover");
+        };
+
+        window.handleDrop = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          document.getElementById("uploadArea").classList.remove("dragover");
+          
+          const files = e.dataTransfer.files;
+          if (files.length) {
+            document.getElementById("fileInput").files = files;
+            handleFiles();
+          }
+        };
+
+        // File handling
+        window.handleFiles = async function() {
+          const fileInput = document.getElementById("fileInput");
+          if (!fileInput.files.length) return;
+          
+          // Check attempts before processing
+          if (!await canPerformDetection()) return;
+          
+          // Reset UI
+          document.getElementById("fileCount").textContent = "0";
+          document.getElementById("filePreview").style.display = "none";
+          document.getElementById("imagePreview").style.display = "none";
+          document.getElementById("uploadProgress").style.display = "block";
+          
+          const file = fileInput.files[0];
+          const formData = new FormData();
+          formData.append("file", file);
+          
+          // Create preview based on file type
+          if (file.type.startsWith('image/')) {
+            const imgUrl = URL.createObjectURL(file);
+            const previewImg = document.getElementById("imagePreview");
+            previewImg.style.display = "block";
+            previewImg.src = imgUrl;
+            
+            try {
+              const resp = await fetch("http://localhost:8000/upload", {
+                method: "POST",
+                body: formData
+              });
+              
+              if (!resp.ok) throw new Error(resp.statusText);
+              
+              const { person_count, processed_file } = await resp.json();
+              document.getElementById("fileCount").textContent = person_count;
+              updateStats(person_count);
+              
+              // Update preview with processed version if available
+              if (processed_file) {
+                // Add timestamp to prevent caching
+                previewImg.src = processed_file + '?' + new Date().getTime();
+              }
+              
+              // Increment attempts after successful detection
+              await incrementAttempts();
+            } catch(err) {
+              console.error("Upload error:", err);
+              alert("Upload failed: " + err.message);
+            } finally {
+              document.getElementById("uploadProgress").style.display = "none";
+            }
+            
+            // Clean up object URL when image loads
+            previewImg.onload = function() {
+              URL.revokeObjectURL(imgUrl);
+            };
+            
+          } else if (file.type.startsWith('video/')) {
+            const vidUrl = URL.createObjectURL(file);
+            const previewVid = document.getElementById("filePreview");
+            previewVid.style.display = "block";
+            previewVid.src = vidUrl;
+            previewVid.controls = true;
+            
+            try {
+              const resp = await fetch("http://localhost:8000/upload", {
+                method: "POST",
+                body: formData
+              });
+              
+              if (!resp.ok) throw new Error(resp.statusText);
+              
+              const { person_count, processed_file } = await resp.json();
+              document.getElementById("fileCount").textContent = person_count;
+              updateStats(person_count);
+              
+              // Update preview with processed version if available
+              if (processed_file) {
+                // Add timestamp to prevent caching
+                previewVid.src = processed_file + '?' + new Date().getTime();
+                previewVid.load();
+              }
+              
+              // Increment attempts after successful detection
+              await incrementAttempts();
+            } catch(err) {
+              console.error("Upload error:", err);
+              alert("Upload failed: " + err.message);
+            } finally {
+              document.getElementById("uploadProgress").style.display = "none";
+            }
+            
+            // Clean up object URL when video loads
+            previewVid.onloadeddata = function() {
+              URL.revokeObjectURL(vidUrl);
+            };
+          }
+        };
+
+        // Set up file input change event
+        document.getElementById('fileInput').addEventListener('change', handleFiles);
+
+        // Live feed functionality
+        const btnLive = document.getElementById("btnToggleLive");
+        const liveVideo = document.getElementById("liveVideo");
+        const liveCountEl = document.getElementById("liveCount");
+        const videoContainer = liveVideo.parentElement;
+        
+        let liveStream = null;
+        let detectionInterval = null;
+        let liveUsageTimer = null;
+        let liveStartTime = null;
+        
+        // Fullscreen button functionality
+        const fullscreenBtn = document.querySelector('.fullscreen-btn');
+        fullscreenBtn.onclick = () => {
+          if (liveVideo.requestFullscreen) {
+            liveVideo.requestFullscreen();
+          } else if (liveVideo.webkitRequestFullscreen) {
+            liveVideo.webkitRequestFullscreen();
+          } else if (liveVideo.msRequestFullscreen) {
+            liveVideo.msRequestFullscreen();
+          }
+        };
+
+        // Function to draw detection boxes
+        window.drawDetections = function(detections) {
+          // Clear previous detections
+          const existingBoxes = document.querySelectorAll('.detection-box, .detection-label');
+          existingBoxes.forEach(box => box.remove());
+          
+          const videoWidth = liveVideo.videoWidth;
+          const videoHeight = liveVideo.videoHeight;
+          const displayWidth = liveVideo.clientWidth;
+          const displayHeight = liveVideo.clientHeight;
+          
+          // Calculate scale factors
+          const scaleX = displayWidth / videoWidth;
+          const scaleY = displayHeight / videoHeight;
+          
+          let personCount = 0;
+          
+          detections.forEach((det, index) => {
+            const [x1, y1, x2, y2, conf, cls] = det;
+            if (cls === 0) { // Person class
+              personCount++;
+              
+              // Create detection box
+              const box = document.createElement('div');
+              box.className = 'detection-box';
+              box.style.left = `${x1 * scaleX}px`;
+              box.style.top = `${y1 * scaleY}px`;
+              box.style.width = `${(x2 - x1) * scaleX}px`;
+              box.style.height = `${(y2 - y1) * scaleY}px`;
+              
+              // Create label
+              const label = document.createElement('div');
+              label.className = 'detection-label';
+              label.style.left = `${x1 * scaleX}px`;
+              label.style.top = `${y1 * scaleY - 25}px`;
+              label.textContent = `Person ${conf.toFixed(2)}`;
+              
+              videoContainer.appendChild(box);
+              videoContainer.appendChild(label);
+            }
+          });
+          
+          liveCountEl.textContent = personCount;
+          updateStats(personCount);
+        };
+        
+        // Start/stop live feed
+        btnLive.onclick = async () => {
+          if (!liveStream) {
+            // Check attempts before starting
+            if (!await canPerformDetection()) return;
+            
+            try {
+              liveStream = await navigator.mediaDevices.getUserMedia({ video: true });
+              liveVideo.srcObject = liveStream;
+              btnLive.textContent = "Stop Live";
+              liveStartTime = Date.now();
+              
+              // Start detection interval
+              detectionInterval = setInterval(async () => {
+                if (liveVideo.readyState === liveVideo.HAVE_ENOUGH_DATA) {
+                  // Create canvas to capture frame
+                  const canvas = document.createElement('canvas');
+                  canvas.width = liveVideo.videoWidth;
+                  canvas.height = liveVideo.videoHeight;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(liveVideo, 0, 0, canvas.width, canvas.height);
+                  
+                  // Convert to blob and send to server
+                  canvas.toBlob(async (blob) => {
+                    const formData = new FormData();
+                    formData.append('frame', blob, 'frame.jpg');
+                    
+                    try {
+                      const response = await fetch('http://localhost:8000/detect', {
+                        method: 'POST',
+                        body: formData
+                      });
+                      
+                      if (response.ok) {
+                        const detections = await response.json();
+                        // Convert to expected format
+                        const formattedDetections = detections.map(d => [
+                          d.x1, d.y1, d.x2, d.y2, d.conf, d.cls
+                        ]);
+                        drawDetections(formattedDetections);
+                      }
+                    } catch (error) {
+                      console.error('Detection error:', error);
+                    }
+                  }, 'image/jpeg', 0.8);
+                }
+              }, 500); // Process every 500ms
+              
+              // Start timer to count live usage (1 attempt per minute)
+              liveUsageTimer = setInterval(async () => {
+                if (!currentUser.isPremium) {
+                  await incrementAttempts();
+                }
+              }, LIVE_ATTEMPT_INTERVAL);
+              
+            } catch (error) {
+              console.error('Camera error:', error);
+              alert('Could not access camera: ' + error.message);
+            }
+          } else {
+            // Stop live feed
+            liveStream.getTracks().forEach(track => track.stop());
+            liveStream = null;
+            liveVideo.srcObject = null;
+            btnLive.textContent = "Start Live";
+            clearInterval(detectionInterval);
+            detectionInterval = null;
+            clearInterval(liveUsageTimer);
+            liveUsageTimer = null;
+            liveStartTime = null;
+            
+            // Clear detections
+            const existingBoxes = document.querySelectorAll('.detection-box, .detection-label');
+            existingBoxes.forEach(box => box.remove());
+            liveCountEl.textContent = "0";
+          }
+        };
+
+        // Initialize Bootstrap modal
+        new bootstrap.Modal(document.getElementById('limitModal'));
+      }
+    </script>
+  </body>
+</html>
